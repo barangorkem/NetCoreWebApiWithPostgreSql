@@ -1,0 +1,2 @@
+# NetCoreWebApiWithPostgreSql
+NetCoreWebApi With PostgreSql
