@@ -21,5 +21,8 @@ namespace NetCorePostgreSql.Data.Models
         [RegularExpression("^[a-zA-Z0-9_\\.-]+@([a-zA-Z0-9-]+\\.)+[a-zA-Z]{2,6}$", ErrorMessage = "E-mail is not valid")]
         [DataType(DataType.EmailAddress)]
         public string Email { get; set; }
+
+        public ICollection<Products> Products { get; set; }
+
     }
 }

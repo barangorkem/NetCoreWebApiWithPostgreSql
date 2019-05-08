@@ -25,5 +25,7 @@ namespace NetCorePostgreSql.Data.Context
             }
         }
         public DbSet<Users> Users { get; set; }
+        public DbSet<Products> Products { get; set; }
+
     }
 }

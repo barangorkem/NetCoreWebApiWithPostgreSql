@@ -46,6 +46,7 @@ namespace NetCorePostgreSql.Service
 
             // Autofac registration calls can go here.
             builder.RegisterType<UserRepository>().As<IUserRepository>().InstancePerLifetimeScope();
+            builder.RegisterType<ProductRepository>().As<IProductRepository>().InstancePerLifetimeScope();
 
             // If the container requires many registrations or registrations that are shared with other
             // containers, builder.RegisterModule is a useful API.
