@@ -15,5 +15,7 @@ namespace NetCorePostgreSql.Core.Infrastructure
         void Update(T obj,T obj2);
 
         void Delete(T obj);
+
+        T FindByName(T obj);
     }
 }

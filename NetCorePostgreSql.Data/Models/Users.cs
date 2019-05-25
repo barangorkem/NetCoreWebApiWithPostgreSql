@@ -1,8 +1,7 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
-using System.Text;
+
 
 namespace NetCorePostgreSql.Data.Models
 {
@@ -11,7 +10,7 @@ namespace NetCorePostgreSql.Data.Models
         [Key, DatabaseGenerated(DatabaseGeneratedOption.Identity)]
         public int id { get; set; }
 
-        [Required(ErrorMessage ="Gereklidir")]
+        [Required(ErrorMessage = "Gereklidir")]
         [MaxLength(20, ErrorMessage = "20 karakterden fazla olamaz.")]
         public string UserName { get; set; }
         [Required(ErrorMessage = "Gereklidir")]

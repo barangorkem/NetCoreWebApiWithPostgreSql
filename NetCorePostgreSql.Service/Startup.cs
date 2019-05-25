@@ -1,18 +1,16 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
+using System.Text;
 using Autofac;
 using Autofac.Extensions.DependencyInjection;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.HttpsPolicy;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
+using Microsoft.IdentityModel.Tokens;
 using NetCorePostgreSql.Core.Infrastructure;
 using NetCorePostgreSql.Core.Repository;
 using NetCorePostgreSql.Data.Context;
@@ -35,7 +33,26 @@ namespace NetCorePostgreSql.Service
         {
             services.AddDbContext<ApplicationDBContext>(options =>
                             options.UseNpgsql(Configuration.GetConnectionString("DefaultConnection")));
+
+            services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+   .AddJwtBearer(jwtBearerOptions =>
+   {
+       jwtBearerOptions.TokenValidationParameters = new TokenValidationParameters()
+       {
+           ValidateActor = true,
+           ValidateAudience = true,
+           ValidateLifetime = true,
+           ValidateIssuerSigningKey = true,
+           ValidIssuer = Configuration["Issuer"],
+           ValidAudience = Configuration["Audience"],
+           IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(Configuration["SigningKey"]))
+       };
+   });
+
+
             services.AddMvc().SetCompatibilityVersion(CompatibilityVersion.Version_2_1);
+
+            services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
 
             services.AddMvc(options =>   //Veri tipi json olarak ayarlandı.
             {
@@ -47,6 +64,7 @@ namespace NetCorePostgreSql.Service
             // Autofac registration calls can go here.
             builder.RegisterType<UserRepository>().As<IUserRepository>().InstancePerLifetimeScope();
             builder.RegisterType<ProductRepository>().As<IProductRepository>().InstancePerLifetimeScope();
+            builder.RegisterType<RoleRepository>().As<IRoleRepository>().InstancePerLifetimeScope();
 
             // If the container requires many registrations or registrations that are shared with other
             // containers, builder.RegisterModule is a useful API.
@@ -75,7 +93,14 @@ namespace NetCorePostgreSql.Service
                 app.UseHsts();
             }
 
+
+            app.UseCors(options =>
+              options.WithOrigins("http://localhost:8080")
+              .AllowAnyMethod()
+              .AllowAnyHeader()
+          );
             app.UseHttpsRedirection();
+            app.UseAuthentication();
             app.UseMvc();
         }
     }

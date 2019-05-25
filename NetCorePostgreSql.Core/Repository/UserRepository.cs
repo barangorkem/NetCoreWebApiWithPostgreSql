@@ -57,5 +57,11 @@ namespace NetCorePostgreSql.Core.Repository
             obj.UserName = obj2.UserName;
             _context.SaveChanges();
         }
+
+        public Users FindByName(Users findUser)
+        {
+            Users user = _context.Users.FirstOrDefault(x => x.Email == findUser.Email || x.UserName == findUser.UserName);
+            return user;
+        }
     }
 }

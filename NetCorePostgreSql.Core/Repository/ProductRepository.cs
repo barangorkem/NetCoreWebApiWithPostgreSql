@@ -23,6 +23,12 @@ namespace NetCorePostgreSql.Core.Repository
             _context.SaveChanges();
         }
 
+        public Products FindByName(Products obj)
+        {
+            Products product = _context.Products.FirstOrDefault(x => x.Name == obj.Name);
+            return product;
+        }
+
         public IEnumerable<Products> GetAll()
         {
             

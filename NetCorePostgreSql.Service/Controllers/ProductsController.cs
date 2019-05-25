@@ -2,21 +2,32 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
+using System.Security.Claims;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Configuration;
 using NetCorePostgreSql.Core.Infrastructure;
 using NetCorePostgreSql.Data.Models;
+using NetCorePostgreSql.Service.DTO;
+using NetCorePostgreSql.Service.DTOFunctions;
 
 namespace NetCorePostgreSql.Service.Controllers
 {
     [Route("api/[controller]")]
+    //[Authorize(Roles = "Admin")]
     [ApiController]
+
     public class ProductsController : ControllerBase
     {
         private readonly IProductRepository _productRepository;
-
-        public ProductsController(IProductRepository _productRepository)
+        private readonly IConfiguration _config;
+        private readonly IHttpContextAccessor _httpContextAccessor;
+        public ProductsController(IProductRepository _productRepository, IHttpContextAccessor _httpContextAccessor, IConfiguration _config)
         {
             this._productRepository = _productRepository;
+            this._httpContextAccessor = _httpContextAccessor;
+            this._config = _config;
         }
         [HttpGet]
         public IActionResult GetProducts()
@@ -26,7 +37,13 @@ namespace NetCorePostgreSql.Service.Controllers
             try
             {
                 IEnumerable<Products> products = _productRepository.GetAll();
-                return StatusCode((int)HttpStatusCode.OK, products);
+                return StatusCode((int)HttpStatusCode.OK, products.Select(x => new UserProducts()
+                {
+                    id = x.id,
+                    Name = x.Name,
+                    Price = x.Price,
+                    UserName = x.Users.UserName
+                }));
             }
             catch (Exception)
             {
@@ -40,6 +57,8 @@ namespace NetCorePostgreSql.Service.Controllers
             {
                 if (ModelState.IsValid)
                 {
+                    UserFunctions userFunctions = new UserFunctions(this._httpContextAccessor);
+                    product.UserId = userFunctions.GetUserId();
                     _productRepository.Insert(product);
                     return StatusCode((int)HttpStatusCode.Created, new { message = "Kayıt başarılıdır." });
                 }
@@ -59,7 +78,7 @@ namespace NetCorePostgreSql.Service.Controllers
             try
             {
                 Products product = _productRepository.GetById(id);
-                if(product!=null)
+                if (product != null)
                 {
                     return StatusCode((int)HttpStatusCode.OK, product);
                 }

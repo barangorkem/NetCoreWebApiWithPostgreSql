@@ -1,34 +1,36 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Net;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Configuration;
 using NetCorePostgreSql.Core.Infrastructure;
 using NetCorePostgreSql.Data.Models;
 
 namespace NetCorePostgreSql.Service.Controllers
 {
     [Route("api/[controller]")]
+    [Authorize]
     [ApiController]
     public class UsersController : ControllerBase
     {
         private readonly IUserRepository _userRepository;
+        private readonly IConfiguration _config;
 
-        public UsersController(IUserRepository _userRepository)
+        public UsersController(IUserRepository _userRepository, IConfiguration _config)
         {
             this._userRepository = _userRepository;
+            this._config = _config;
         }
         [HttpGet]
         public IActionResult GetUsers()
         {
-           try
+            try
             {
                 IEnumerable<Users> users = _userRepository.GetAll();
-                return StatusCode((int)HttpStatusCode.OK,users);
+                return StatusCode((int)HttpStatusCode.OK, users);
             }
-            catch(Exception)
+            catch (Exception)
             {
                 return StatusCode((int)HttpStatusCode.BadRequest, new { error = "Hata oluştu" });
             }
@@ -38,10 +40,18 @@ namespace NetCorePostgreSql.Service.Controllers
         {
             try
             {
-                if(ModelState.IsValid)
+                if (ModelState.IsValid)
                 {
-                    _userRepository.Insert(user);
-                    return StatusCode((int)HttpStatusCode.Created, new { message = "Kayıt başarılıdır." });
+                    Users isUser = _userRepository.FindByName(user);
+                    if (isUser != null)
+                    {
+                        return StatusCode((int)HttpStatusCode.Conflict, new { message = "Daha önce böyle bir email veya kullanıcı adı bulunmaktadır." });
+                    }
+                    else
+                    {
+                        _userRepository.Insert(user);
+                        return StatusCode((int)HttpStatusCode.Created, new { message = "Kayıt başarılıdır." });
+                    }
                 }
                 else
                 {
@@ -50,7 +60,7 @@ namespace NetCorePostgreSql.Service.Controllers
             }
             catch (Exception err)
             {
-                return StatusCode((int)HttpStatusCode.BadRequest, new { error = err });
+                return StatusCode((int)HttpStatusCode.InternalServerError, new { error = err });
             }
         }
         [HttpGet("{id}")]
@@ -58,10 +68,10 @@ namespace NetCorePostgreSql.Service.Controllers
         {
             try
             {
-               Users user=_userRepository.GetById(id);
-                if(user!=null)
+                Users user = _userRepository.GetById(id);
+                if (user != null)
                 {
-                    return StatusCode((int)HttpStatusCode.OK,user);
+                    return StatusCode((int)HttpStatusCode.OK, user);
 
                 }
                 else
@@ -69,7 +79,7 @@ namespace NetCorePostgreSql.Service.Controllers
                     return StatusCode((int)HttpStatusCode.NotFound, new { message = "Kayıt bulunamadı" });
                 }
             }
-            catch(Exception err)
+            catch (Exception err)
             {
                 return StatusCode((int)HttpStatusCode.BadRequest, new { error = err });
             }
@@ -97,14 +107,14 @@ namespace NetCorePostgreSql.Service.Controllers
             }
         }
         [HttpPut("{id}")]
-        public IActionResult UpdateUser(int id,Users newUser)
+        public IActionResult UpdateUser(int id, Users newUser)
         {
             try
             {
                 Users user = _userRepository.GetById(id);
                 if (user != null)
                 {
-                    _userRepository.Update(user,newUser);
+                    _userRepository.Update(user, newUser);
                     return StatusCode((int)HttpStatusCode.OK, new { message = "Güncelleme işlemi başarılıdır." });
                 }
                 else
@@ -117,5 +127,7 @@ namespace NetCorePostgreSql.Service.Controllers
                 return StatusCode((int)HttpStatusCode.BadRequest, new { error = err });
             }
         }
+
+
     }
 }
