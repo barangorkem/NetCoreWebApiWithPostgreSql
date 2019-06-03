@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
+using NetCorePostgreSql.Core.Class;
 using NetCorePostgreSql.Data.Context;
 using NetCorePostgreSql.Service.DTO;
 using NetCorePostgreSql.Service.DTOFunctions;
@@ -32,36 +33,50 @@ namespace NetCorePostgreSql.Service.Controllers
         {
             if (ModelState.IsValid)
             {
-                var user = _context.Users.FirstOrDefault(x => x.UserName == request.UserName && x.Password == request.Password);
+
+
+                var user = _context.Users.FirstOrDefault(x => x.UserName == request.UserName);
                 if (user == null)
                 {
                     return StatusCode((int)HttpStatusCode.Unauthorized, new { message = "Giriş bilgileriniz hatalıdır." });
                 }
-                RolesFunctions _rolesFunctions = new RolesFunctions(this._context);
-                string[] userRoles = _rolesFunctions.GetUserRoles(user.id);
-                List<Claim> claims = new List<Claim>
+                else
+                {
+                    bool match = Hash.Validate(request.Password, user.Salt, user.Password);
+                    if (match)
+                    {
+                        RolesFunctions _rolesFunctions = new RolesFunctions(this._context);
+                        string[] userRoles = _rolesFunctions.GetUserRoles(user.id);
+                        List<Claim> claims = new List<Claim>
                 {
             new Claim("UserName", user.UserName),
             new Claim("Email",user.Email),
             new Claim("Id",user.id.ToString()),
         };
 
-                for (int i = 0; i < userRoles.Length; i++)
-                {
-                    claims.Add(new Claim(ClaimTypes.Role, userRoles[i]));
-                }
+                        for (int i = 0; i < userRoles.Length; i++)
+                        {
+                            claims.Add(new Claim(ClaimTypes.Role, userRoles[i]));
+                        }
 
-                var token = new JwtSecurityToken
-                (
-                    issuer: _configuration["Issuer"], //appsettings.json içerisinde bulunan issuer değeri
-                    audience: _configuration["Audience"],//appsettings.json içerisinde bulunan audince değeri
-                    claims: claims,
-                    expires: DateTime.UtcNow.AddMinutes(60), // 30 gün geçerli olacak
-                    notBefore: DateTime.UtcNow,
-                    signingCredentials: new SigningCredentials(new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["SigningKey"])),//appsettings.json içerisinde bulunan signingkey değeri
-                            SecurityAlgorithms.HmacSha256)
-                );
-                return Ok(new { token = new JwtSecurityTokenHandler().WriteToken(token), roles = userRoles });
+                        var token = new JwtSecurityToken
+                        (
+                            issuer: _configuration["Issuer"], //appsettings.json içerisinde bulunan issuer değeri
+                            audience: _configuration["Audience"],//appsettings.json içerisinde bulunan audince değeri
+                            claims: claims,
+                            expires: DateTime.UtcNow.AddMinutes(60), // 30 gün geçerli olacak
+                            notBefore: DateTime.UtcNow,
+                            signingCredentials: new SigningCredentials(new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["SigningKey"])),//appsettings.json içerisinde bulunan signingkey değeri
+                                    SecurityAlgorithms.HmacSha256)
+                        );
+                        return Ok(new { token = new JwtSecurityTokenHandler().WriteToken(token), roles = userRoles });
+                    }
+                    else
+                    {
+                        return StatusCode((int)HttpStatusCode.Unauthorized, new { message = "Şifre hatalı" });
+
+                    }
+                }
             }
             return BadRequest();
         }

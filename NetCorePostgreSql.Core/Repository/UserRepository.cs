@@ -1,4 +1,5 @@
-﻿using NetCorePostgreSql.Core.Infrastructure;
+﻿using NetCorePostgreSql.Core.Class;
+using NetCorePostgreSql.Core.Infrastructure;
 using NetCorePostgreSql.Data.Context;
 using NetCorePostgreSql.Data.Models;
 using System;
@@ -23,31 +24,34 @@ namespace NetCorePostgreSql.Core.Repository
                 _context.Users.Remove(obj);
                 _context.SaveChanges();
             }
-            catch(Exception e)
+            catch (Exception e)
             {
                 throw e;
             }
-               
+
         }
 
         public IEnumerable<Users> GetAll()
         {
-           return _context.Users.ToList();
+            return _context.Users.ToList();
         }
 
         public Users GetById(int id)
         {
             Users user = _context.Users.FirstOrDefault(x => x.id == id);
             return user;
-           
+
         }
 
         public void Insert(Users obj)
         {
-           
-                _context.Users.Add(obj);
-                _context.SaveChanges();
-            
+            string salt = Salt.Create();
+            string hash = Hash.Create(obj.Password, salt);
+            obj.Salt = salt;
+            obj.Password = hash;
+            _context.Users.Add(obj);
+            _context.SaveChanges();
+
         }
 
         public void Update(Users obj, Users obj2)
